@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomePage(),
         '/add_income': (context) => AddSourceIncomePage(),
-        '/statistics': (context) => StatisticsPage(), // Tambahkan rute untuk halaman statistik
+        '/statistics': (context) => StatisticsPage(), 
       },
     );
   }
