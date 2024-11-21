@@ -47,7 +47,7 @@ class StatisticsPage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Tabs (Day, Week, Month, Year)
+          
           Container(
             padding: EdgeInsets.symmetric(vertical: 10),
             color: Colors.orange.shade50,
@@ -62,7 +62,7 @@ class StatisticsPage extends StatelessWidget {
             ),
           ),
 
-          // Graph Section
+          
           Expanded(
             flex: 2,
             child: Padding(
@@ -90,7 +90,7 @@ class StatisticsPage extends StatelessWidget {
             ),
           ),
 
-          // Top Spending Section
+          
           Expanded(
             flex: 3,
             child: Padding(
@@ -144,7 +144,7 @@ class StatisticsPage extends StatelessWidget {
         ],
       ),
 
-      // Bottom Navigation Bar
+      
       bottomNavigationBar: BottomAppBar(
         shape: CircularNotchedRectangle(),
         notchMargin: 8,
@@ -153,19 +153,19 @@ class StatisticsPage extends StatelessWidget {
           children: [
             IconButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/'); // Navigate to Home
+                Navigator.pushNamed(context, '/'); 
               },
               icon: const Icon(Icons.home),
             ),
             IconButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/add_income'); // Navigate to Add Income
+                Navigator.pushNamed(context, '/add_income'); 
               },
               icon: const Icon(Icons.add, color: Colors.orange),
             ),
             IconButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/statistics'); // Navigate to Statistics
+                Navigator.pushNamed(context, '/statistics'); 
               },
               icon: const Icon(Icons.bar_chart),
             ),
