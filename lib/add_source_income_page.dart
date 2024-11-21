@@ -16,7 +16,7 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     {'icon': Icons.health_and_safety, 'name': 'Health'},
   ];
 
-  DateTime? _selectedDate; // Variabel untuk menyimpan tanggal yang dipilih
+  DateTime? _selectedDate; 
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +163,7 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
         SizedBox(height: 5),
         GestureDetector(
           onTap: () async {
-            // Tampilkan date picker
+            
             DateTime? pickedDate = await showDatePicker(
               context: context,
               initialDate: _selectedDate ?? DateTime.now(),
@@ -225,7 +225,7 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
             Center(
               child: TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Menutup dialog
+                  Navigator.pop(context); 
                 },
                 child: Text(
                   "OK",
