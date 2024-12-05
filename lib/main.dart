@@ -1,9 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:moneyt/firebase_options.dart';
 import 'home_page.dart';
 import 'add_source_income_page.dart';
 import 'statistics_page.dart';
-
-void main() {
+import 'personalization_page.dart'; 
+Future<void> main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -18,7 +24,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomePage(),
         '/add_income': (context) => AddSourceIncomePage(),
-        '/statistics': (context) => StatisticsPage(), 
+        '/statistics': (context) => StatisticsPage(),
+        '/personalization': (context) => PersonalizationPage(), 
       },
     );
   }

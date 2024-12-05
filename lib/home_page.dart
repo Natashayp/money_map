@@ -10,12 +10,27 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: const [
+        leading: IconButton(
+          icon: const Icon(Icons.home, color: Colors.black),
+          onPressed: () {
+            // Tindakan ketika ikon home ditekan, bisa dibiarkan kosong jika tidak ada navigasi.
+          },
+        ),
+        actions: [
           Padding(
-            padding: EdgeInsets.all(16.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.black12,
-              child: Icon(Icons.person, color: Colors.black),
+            padding: const EdgeInsets.only(right: 16.0),  // Memberikan ruang kanan
+            child: Align(
+              alignment: Alignment.centerRight,  // Menyelaraskan ikon ke kanan
+              child: CircleAvatar(
+                backgroundColor: Colors.black12,
+                child: IconButton(
+                  icon: const Icon(Icons.account_balance_wallet, color: Colors.black), // Icon menggantikan 'person' untuk analisis keuangan
+                  onPressed: () {
+                    // Navigasi ke halaman analisis keuangan
+                    Navigator.pushNamed(context, '/personalization');
+                  },
+                ),
+              ),
             ),
           ),
         ],
