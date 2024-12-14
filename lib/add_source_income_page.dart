@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firebase Firestore
+import 'home_page.dart'; // Ganti dengan path file home_page.dart Anda
 
 class AddSourceIncomePage extends StatefulWidget {
   AddSourceIncomePage({super.key});
@@ -16,7 +18,11 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     {'icon': Icons.health_and_safety, 'name': 'Health'},
   ];
 
-  DateTime? _selectedDate; 
+  DateTime? _selectedDate;
+  String? selectedCategory;
+  String? selectedSourceType; // Field for source type
+  TextEditingController amountController = TextEditingController();
+  TextEditingController notesController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -41,19 +47,19 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDropdownField("Jenis Kategori", "Category"),
+            _buildSourceTypeDropdown(),
             SizedBox(height: 20),
-            _buildInputField("Nominal", "Amount"),
+            _buildDropdownField("Jenis Kategori"),
             SizedBox(height: 20),
-            _buildInputField("Pesan Tambahan", "Notes"),
+            _buildInputField("Nominal", amountController),
+            SizedBox(height: 20),
+            _buildInputField("Pesan Tambahan", notesController),
             SizedBox(height: 20),
             _buildDatePickerField(context),
             SizedBox(height: 30),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  _showConfirmationDialog(context);
-                },
+                onPressed: _saveToFirebase,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 10),
@@ -73,7 +79,46 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     );
   }
 
-  Widget _buildDropdownField(String label, String placeholder) {
+  Widget _buildSourceTypeDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Jenis Sumber",
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        SizedBox(height: 5),
+        DropdownButtonFormField<String>(
+          items: [
+            DropdownMenuItem(value: "Income", child: Text("Income")),
+            DropdownMenuItem(value: "Expense", child: Text("Expense")),
+          ],
+          onChanged: (value) {
+            setState(() {
+              selectedSourceType = value;
+            });
+          },
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            filled: true,
+            fillColor: Colors.white,
+            hintText: "Pilih Jenis Sumber",
+            hintStyle: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.normal,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField(String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -101,12 +146,16 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
                 ),
               )
               .toList(),
-          onChanged: (value) {},
+          onChanged: (value) {
+            setState(() {
+              selectedCategory = value?['name'];
+            });
+          },
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             filled: true,
             fillColor: Colors.white,
-            hintText: placeholder,
+            hintText: "Pilih Kategori",
             hintStyle: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.normal,
@@ -118,7 +167,7 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     );
   }
 
-  Widget _buildInputField(String label, String placeholder) {
+  Widget _buildInputField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -132,11 +181,12 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
         ),
         SizedBox(height: 5),
         TextField(
+          controller: controller,
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             filled: true,
             fillColor: Colors.white,
-            hintText: placeholder,
+            hintText: "Masukkan $label",
             hintStyle: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.normal,
@@ -163,7 +213,6 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
         SizedBox(height: 5),
         GestureDetector(
           onTap: () async {
-            
             DateTime? pickedDate = await showDatePicker(
               context: context,
               initialDate: _selectedDate ?? DateTime.now(),
@@ -200,7 +249,27 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     );
   }
 
-  void _showConfirmationDialog(BuildContext context) {
+  Future<void> _saveToFirebase() async {
+    if (selectedSourceType != null &&
+        selectedCategory != null &&
+        amountController.text.isNotEmpty &&
+        notesController.text.isNotEmpty &&
+        _selectedDate != null) {
+      await FirebaseFirestore.instance.collection('db-money-mab').add({
+        'source': selectedSourceType,
+        'category': selectedCategory,
+        'amount': double.parse(amountController.text),
+        'notes': notesController.text,
+        'date': _selectedDate,
+      });
+
+      _showDialog("Data Saved Successfully", Colors.green);
+    } else {
+      _showDialog("Please fill all fields", Colors.red);
+    }
+  }
+
+  void _showDialog(String message, Color color) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -208,30 +277,21 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 60),
-              SizedBox(height: 16),
-              Text(
-                "Pengeluaran Berhasil Disimpan",
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              Icon(Icons.info, color: color, size: 50),
+              SizedBox(height: 10),
+              Text(message),
             ],
           ),
           actions: [
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pop(context); 
-                },
-                child: Text(
-                  "OK",
-                  style: TextStyle(fontFamily: 'Inter', color: Colors.orange),
-                ),
-              ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage()),
+                  (route) => false,
+                );
+              },
+              child: Text("OK"),
             ),
           ],
         );
