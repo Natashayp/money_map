@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firebase Firestore
-import 'home_page.dart'; // Ganti dengan path file home_page.dart Anda
+import 'home_page.dart';
 
 class AddSourceIncomePage extends StatefulWidget {
   AddSourceIncomePage({super.key});
@@ -20,7 +20,7 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
 
   DateTime? _selectedDate;
   String? selectedCategory;
-  String? selectedSourceType; // Field for source type
+  String? selectedSourceType;
   TextEditingController amountController = TextEditingController();
   TextEditingController notesController = TextEditingController();
 

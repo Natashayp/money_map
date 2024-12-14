@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // Import the intl package
+import 'package:intl/intl.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
         leading: IconButton(
           icon: const Icon(Icons.home, color: Colors.black),
           onPressed: () {
-            // Tindakan ketika ikon home ditekan
+            // kalo di klik balik ke icon home
           },
         ),
         actions: [
@@ -42,7 +42,6 @@ class _HomePageState extends State<HomePage> {
                 child: IconButton(
                   icon: const Icon(Icons.account_balance_wallet, color: Colors.black),
                   onPressed: () {
-                    // Navigasi ke halaman analisis keuangan
                     Navigator.pushNamed(context, '/personalization');
                   },
                 ),
@@ -178,7 +177,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            _currencyFormat.format(totalBalance),  // Format the total balance with commas
+            _currencyFormat.format(totalBalance),  
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 24,
@@ -260,7 +259,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Text(
-            (isExpense ? "- " : "+ ") + _currencyFormat.format(amount.abs()),  // Format the amount with commas
+            (isExpense ? "- " : "+ ") + _currencyFormat.format(amount.abs()),  
             style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
