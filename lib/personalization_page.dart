@@ -11,7 +11,7 @@ class FinanceData {
     required this.expenseLimit,
   });
 
-  double get predictedIncome => income * 1.1; // Predicted income with 10% increase
+  double get predictedIncome => income * 1.1; 
   bool get isOverLimit => expense > expenseLimit;
 
   String get suggestion {
@@ -81,7 +81,6 @@ class _PersonalizationPageState extends State<PersonalizationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Income field
             TextField(
               controller: _incomeController,
               keyboardType: TextInputType.number,
@@ -98,7 +97,6 @@ class _PersonalizationPageState extends State<PersonalizationPage> {
             ),
             SizedBox(height: 15),
 
-            // Expense field
             TextField(
               controller: _expenseController,
               keyboardType: TextInputType.number,
@@ -115,7 +113,6 @@ class _PersonalizationPageState extends State<PersonalizationPage> {
             ),
             SizedBox(height: 15),
 
-            // Limit field
             TextField(
               controller: _limitController,
               keyboardType: TextInputType.number,
@@ -132,7 +129,6 @@ class _PersonalizationPageState extends State<PersonalizationPage> {
             ),
             SizedBox(height: 20),
 
-            // Analyze Button
             ElevatedButton(
               onPressed: _analyzeFinance,
               child: Text(
@@ -146,7 +142,6 @@ class _PersonalizationPageState extends State<PersonalizationPage> {
             ),
             SizedBox(height: 30),
 
-            // Results display
             if (_predictedIncome != null)
               Container(
                 padding: EdgeInsets.all(16),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +18,11 @@ class _HomePageState extends State<HomePage> {
   Future<List<Map<String, dynamic>>> _getTransactions() async {
     var querySnapshot = await _firestore.collection('db-money-mab').get();
     return querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+  }
+
+  Future<String> _getUserName() async {
+    var userProfile = await _firestore.collection('profil').doc('user_profile').get();
+    return userProfile.data()?['name'] ?? 'Unknown';
   }
 
   void navigateToPage(int index) {
@@ -40,7 +46,6 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient
           Container(
             height: 235,
             decoration: const BoxDecoration(
@@ -51,37 +56,46 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // Content
           SafeArea(
             child: Column(
               children: [
-                // AppBar Content
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Perubahan pada sapaan dan nama
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            "Hello,",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            "Gabjes",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
+                      FutureBuilder<String>(
+                        future: _getUserName(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const CircularProgressIndicator();
+                          } else if (snapshot.hasError) {
+                            return const Text('Error fetching name');
+                          } else {
+                            final userName = snapshot.data ?? 'Unknown';
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Hello,",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  userName,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
                       ),
                       Row(
                         children: [
@@ -91,15 +105,19 @@ class _HomePageState extends State<HomePage> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.person, color: Colors.black),
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => ProfilePage()),
+                              );
+                            },
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                // Total Balance Section
-                FutureBuilder<List<Map<String, dynamic>>>( 
+                FutureBuilder<List<Map<String, dynamic>>>(
                   future: _getTransactions(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -186,7 +204,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      FutureBuilder<List<Map<String, dynamic>>>( 
+                      FutureBuilder<List<Map<String, dynamic>>>(
                         future: _getTransactions(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -229,7 +247,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      // Floating Action Button
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/add_income');
@@ -275,7 +292,7 @@ class _HomePageState extends State<HomePage> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
+                    color: Colors.black45,
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -287,38 +304,34 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  IconData _getCategoryIcon(String category) {
+  Icon _getCategoryIcon(String category) {
     switch (category) {
-      case 'Food':
-        return Icons.restaurant;
-      case 'Transportation':
-        return Icons.directions_bike;
-      case 'Income':
-        return Icons.attach_money;
       case 'Salary':
-        return Icons.account_balance_wallet;
+        return const Icon(Icons.attach_money, color: Colors.green);
       case 'Investment':
-        return Icons.trending_up;
+        return const Icon(Icons.trending_up, color: Colors.blue);
       case 'Bonus':
-        return Icons.star;
+        return const Icon(Icons.card_giftcard, color: Colors.orange);
       case 'Other':
-        return Icons.category;
+        return const Icon(Icons.category, color: Colors.grey);
       case 'Shopping':
-        return Icons.shopping_cart;
+        return const Icon(Icons.shopping_cart, color: Colors.purple);
+      case 'Food':
+        return const Icon(Icons.fastfood, color: Colors.red);
       case 'Groceries':
-        return Icons.local_grocery_store;
+        return const Icon(Icons.local_grocery_store, color: Colors.brown);
       case 'Entertainment':
-        return Icons.tv;
+        return const Icon(Icons.movie, color: Colors.indigo);
       case 'Health':
-        return Icons.health_and_safety;
+        return const Icon(Icons.health_and_safety, color: Colors.pink);
       default:
-        return Icons.category;
+        return const Icon(Icons.error, color: Colors.red);
     }
   }
 }
 
 class TransactionItem extends StatelessWidget {
-  final IconData icon;
+  final Icon icon;
   final String title;
   final String category;
   final String amount;
@@ -326,29 +339,22 @@ class TransactionItem extends StatelessWidget {
   final Color amountColor;
 
   const TransactionItem({
+    Key? key,
     required this.icon,
     required this.title,
     required this.category,
     required this.amount,
     required this.date,
     required this.amountColor,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 222, 252, 246),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.black, size: 24),
-          ),
+          icon,
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -359,6 +365,7 @@ class TransactionItem extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
                 ),
                 Text(
