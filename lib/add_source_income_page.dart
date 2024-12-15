@@ -1,76 +1,89 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firebase Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_page.dart';
 
 class AddSourceIncomePage extends StatefulWidget {
-  AddSourceIncomePage({super.key});
-
   @override
   _AddSourceIncomePageState createState() => _AddSourceIncomePageState();
 }
 
 class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
-  final List<Map<String, dynamic>> categories = [
-    {'icon': Icons.shopping_bag, 'name': 'Shopping'},
-    {'icon': Icons.fastfood, 'name': 'Food'},
-    {'icon': Icons.shopping_cart, 'name': 'Groceries'},
-    {'icon': Icons.music_note, 'name': 'Entertainment'},
-    {'icon': Icons.health_and_safety, 'name': 'Health'},
+  String? _selectedSourceType;
+  String? _selectedCategory;
+  DateTime? _selectedDate;
+
+  final List<Map<String, dynamic>> incomeCategories = [
+    {"label": "Salary", "icon": Icons.money},
+    {"label": "Investment", "icon": Icons.trending_up},
+    {"label": "Bonus", "icon": Icons.card_giftcard},
+    {"label": "Other", "icon": Icons.category},
   ];
 
-  DateTime? _selectedDate;
-  String? selectedCategory;
-  String? selectedSourceType;
-  TextEditingController amountController = TextEditingController();
-  TextEditingController notesController = TextEditingController();
+  final List<Map<String, dynamic>> expenseCategories = [
+    {"label": "Shopping", "icon": Icons.shopping_bag},
+    {"label": "Food", "icon": Icons.fastfood},
+    {"label": "Groceries", "icon": Icons.local_grocery_store},
+    {"label": "Entertainment", "icon": Icons.mic},
+    {"label": "Health", "icon": Icons.favorite},
+  ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.orange,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  Future<void> _saveToFirebase() async {
+    if (_selectedSourceType != null &&
+        _selectedCategory != null &&
+        _selectedDate != null &&
+        _amountController.text.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('db-money-mab').add({
+        'source': _selectedSourceType,
+        'category': _selectedCategory,
+        'amount': double.parse(_amountController.text),
+        'notes': _noteController.text,
+        'date': _selectedDate,
+      });
+
+      _showSuccessDialog();
+    } else {
+      _showErrorDialog();
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        title: Text(
-          "Add Source Income",
-          style: TextStyle(color: Colors.white, fontFamily: 'Inter'),
-        ),
-      ),
-      body: Container(
-        color: Color.fromRGBO(249, 241, 230, 1),
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildSourceTypeDropdown(),
-            SizedBox(height: 20),
-            _buildDropdownField("Jenis Kategori"),
-            SizedBox(height: 20),
-            _buildInputField("Nominal", amountController),
-            SizedBox(height: 20),
-            _buildInputField("Pesan Tambahan", notesController),
-            SizedBox(height: 20),
-            _buildDatePickerField(context),
-            SizedBox(height: 30),
-            Center(
-              child: ElevatedButton(
-                onPressed: _saveToFirebase,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+            Icon(Icons.check_circle, color: Colors.green, size: 60),
+            const SizedBox(height: 16),
+            const Text(
+              "Data Berhasil Disimpan",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); 
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage()), 
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9575),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              ),
+              child: const Text(
+                "OK",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
           ],
@@ -79,118 +92,252 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     );
   }
 
-  Widget _buildSourceTypeDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Jenis Sumber",
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+  void _showErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        SizedBox(height: 5),
-        DropdownButtonFormField<String>(
-          items: [
-            DropdownMenuItem(value: "Income", child: Text("Income")),
-            DropdownMenuItem(value: "Expense", child: Text("Expense")),
-          ],
-          onChanged: (value) {
-            setState(() {
-              selectedSourceType = value;
-            });
-          },
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            filled: true,
-            fillColor: Colors.white,
-            hintText: "Pilih Jenis Sumber",
-            hintStyle: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.normal,
-              color: Colors.grey,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error, color: Colors.red, size: 60),
+            const SizedBox(height: 16),
+            const Text(
+              "Tolong isi semua data",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-          ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); 
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9575),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                "OK",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildDropdownField(String label) {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFFFFF),
+      body: Stack(
+        children: [
+          Container(
+            height: 175,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFF9575), Color(0xFFFFCFC0)], 
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 30),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        "Add Source",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                  const SizedBox(height: 30), 
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(24, 0, 24, 32), 
+                      padding: const EdgeInsets.symmetric(vertical: 27, horizontal: 27),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9F1E6), 
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 8,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 5), 
+                          _buildDropdownField(
+                            "Jenis Sumber",
+                            [
+                              {"label": "Income", "icon": Icons.attach_money},
+                              {"label": "Expense", "icon": Icons.money_off},
+                            ],
+                            _selectedSourceType,
+                            "Sumber",
+                            (value) => setState(() {
+                              _selectedSourceType = value;
+                              _selectedCategory = null; 
+                            }),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildDropdownField(
+                            "Jenis Kategori",
+                            _selectedSourceType == "Income"
+                                ? incomeCategories
+                                : expenseCategories,
+                            _selectedCategory,
+                            "Category",
+                            (value) => setState(() => _selectedCategory = value),
+                            enabled: _selectedSourceType != null,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildTextField("Nominal", "Amount", _amountController),
+                          const SizedBox(height: 20),
+                          _buildTextField("Pesan Tambahan", "Notes", _noteController),
+                          const SizedBox(height: 20),
+                          _buildDatePickerField(),
+                          const SizedBox(height: 20),
+                          Center(
+                            child: SizedBox(
+                              width: 150,
+                              child: ElevatedButton(
+                                onPressed: _saveToFirebase,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFF9575), 
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Save",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16), 
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(
+    String label,
+    List<Map<String, dynamic>> items,
+    String? selectedValue,
+    String hint,
+    ValueChanged<String?> onChanged, {
+    bool enabled = true,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        SizedBox(height: 5),
-        DropdownButtonFormField<Map<String, dynamic>>(
-          items: categories
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: selectedValue,
+          items: items
               .map(
-                (category) => DropdownMenuItem(
-                  value: category,
+                (item) => DropdownMenuItem<String>(
+                  value: item["label"],
                   child: Row(
                     children: [
-                      Icon(category['icon']),
-                      SizedBox(width: 10),
-                      Text(category['name'], style: TextStyle(fontFamily: 'Inter')),
+                      Icon(item["icon"], size: 20, color: Colors.black54),
+                      const SizedBox(width: 8),
+                      Text(item["label"]),
                     ],
                   ),
                 ),
               )
               .toList(),
-          onChanged: (value) {
-            setState(() {
-              selectedCategory = value?['name'];
-            });
-          },
+          onChanged: enabled ? onChanged : null,
           decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintText: hint,
             filled: true,
-            fillColor: Colors.white,
-            hintText: "Pilih Kategori",
-            hintStyle: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.normal,
-              color: Colors.grey,
+            fillColor: enabled ? Colors.white : Colors.grey.shade200,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
             ),
           ),
+          style: const TextStyle(fontSize: 14, color: Colors.black),
+          iconEnabledColor: Colors.black54,
+          iconDisabledColor: Colors.grey,
         ),
       ],
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, String hint, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        SizedBox(height: 5),
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
         TextField(
           controller: controller,
           decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintText: hint,
             filled: true,
             fillColor: Colors.white,
-            hintText: "Masukkan $label",
-            hintStyle: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.normal,
-              color: Colors.grey,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.grey),
             ),
           ),
         ),
@@ -198,104 +345,50 @@ class _AddSourceIncomePageState extends State<AddSourceIncomePage> {
     );
   }
 
-  Widget _buildDatePickerField(BuildContext context) {
+  Widget _buildDatePickerField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Tanggal Input",
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        SizedBox(height: 5),
-        GestureDetector(
+        const Text("Tanggal", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        InkWell(
           onTap: () async {
-            DateTime? pickedDate = await showDatePicker(
+            final DateTime? picked = await showDatePicker(
               context: context,
               initialDate: _selectedDate ?? DateTime.now(),
               firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
+              lastDate: DateTime(2101),
             );
-
-            if (pickedDate != null) {
+            if (picked != null && picked != _selectedDate) {
               setState(() {
-                _selectedDate = pickedDate;
+                _selectedDate = picked;
               });
             }
           },
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              hintText: "Pilih Tanggal",
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
             ),
             child: Text(
-              _selectedDate != null
-                  ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
-                  : "Pilih Tanggal",
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.normal,
-                color: _selectedDate != null ? Colors.black : Colors.grey,
-              ),
+              _selectedDate == null
+                  ? "Pilih Tanggal"
+                  : "${_selectedDate!.day}-${_selectedDate!.month}-${_selectedDate!.year}",
+              style: const TextStyle(fontSize: 14, color: Colors.black),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Future<void> _saveToFirebase() async {
-    if (selectedSourceType != null &&
-        selectedCategory != null &&
-        amountController.text.isNotEmpty &&
-        notesController.text.isNotEmpty &&
-        _selectedDate != null) {
-      await FirebaseFirestore.instance.collection('db-money-mab').add({
-        'source': selectedSourceType,
-        'category': selectedCategory,
-        'amount': double.parse(amountController.text),
-        'notes': notesController.text,
-        'date': _selectedDate,
-      });
-
-      _showDialog("Data Saved Successfully", Colors.green);
-    } else {
-      _showDialog("Please fill all fields", Colors.red);
-    }
-  }
-
-  void _showDialog(String message, Color color) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.info, color: color, size: 50),
-              SizedBox(height: 10),
-              Text(message),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomePage()),
-                  (route) => false,
-                );
-              },
-              child: Text("OK"),
-            ),
-          ],
-        );
-      },
     );
   }
 }
