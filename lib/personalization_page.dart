@@ -1,52 +1,175 @@
 import 'package:flutter/material.dart';
-
-class FinanceData {
-  double income;
-  double expense;
-  double expenseLimit;
-
-  FinanceData({
-    required this.income,
-    required this.expense,
-    required this.expenseLimit,
-  });
-
-  double get predictedIncome => income * 1.1; 
-  bool get isOverLimit => expense > expenseLimit;
-
-  String get suggestion {
-    if (isOverLimit) {
-      return "Pengeluaran Anda melebihi batas. Cobalah mengurangi belanja yang tidak penting atau meningkatkan pendapatan.";
-    } else {
-      return "Keuangan Anda terkendali. Pertahankan pola pengeluaran Anda!";
-    }
-  }
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PersonalizationPage extends StatefulWidget {
+  const PersonalizationPage({super.key});
+
   @override
-  _PersonalizationPageState createState() => _PersonalizationPageState();
+  State<PersonalizationPage> createState() => _PersonalizationPageState();
 }
 
 class _PersonalizationPageState extends State<PersonalizationPage> {
-  final TextEditingController _incomeController = TextEditingController();
-  final TextEditingController _expenseController = TextEditingController();
   final TextEditingController _limitController = TextEditingController();
+  double _income = 0;
+  double _expense = 0;
 
-  double? _predictedIncome;
-  String? _suggestion;
+  @override
+  void dispose() {
+    _limitController.dispose();
+    super.dispose();
+  }
 
-  void _analyzeFinance() {
-    final income = double.tryParse(_incomeController.text) ?? 0.0;
-    final expense = double.tryParse(_expenseController.text) ?? 0.0;
-    final limit = double.tryParse(_limitController.text) ?? 0.0;
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
 
-    final financeData = FinanceData(income: income, expense: expense, expenseLimit: limit);
+  Future<void> _fetchData() async {
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('db-money-mab').get();
+
+    double totalIncome = 0;
+    double totalExpense = 0;
+
+    for (var doc in snapshot.docs) {
+      var data = doc.data() as Map<String, dynamic>;
+      if (data['source'] == 'Income') {
+        totalIncome += data['amount'];
+      } else if (data['source'] == 'Expense') {
+        totalExpense += data['amount'];
+      }
+    }
 
     setState(() {
-      _predictedIncome = financeData.predictedIncome;
-      _suggestion = financeData.suggestion;
+      _income = totalIncome;
+      _expense = totalExpense;
     });
+  }
+
+  void _analyzeFinances() {
+    if (_limitController.text.isEmpty) {
+      _showDialog(
+        "Batas Pengeluaran Belum Diisi",
+        "Silakan isi batas pengeluaran terlebih dahulu.",
+        Colors.red,
+      );
+      return;
+    }
+
+    final double? limit = double.tryParse(_limitController.text);
+    if (limit == null) {
+      _showDialog(
+        "Input Tidak Valid",
+        "Masukkan angka saja yang diperbolehkan.",
+        Colors.red,
+      );
+      return;
+    }
+
+    String message;
+    Color messageColor;
+    Widget content;
+
+    if (_expense <= limit) {
+      message = "Pengeluaran Tidak Melebihi Batas";
+      messageColor = Colors.green;
+      content = const Text(
+        "Selamat! Pengeluaran Anda sesuai dengan batas yang ditentukan.",
+        textAlign: TextAlign.center,
+      );
+    } else if (_expense > limit && _expense <= limit * 1.5) {
+      message = "Pengeluaran Melebihi Batas";
+      messageColor = Colors.yellow;
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text(
+            "Saran yang bisa Anda lakukan:",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text("1. Tinjau kebutuhan prioritas"),
+          Text("2. Kurangi pengeluaran tidak penting"),
+        ],
+      );
+    } else if (_expense > limit * 1.5 && _expense <= limit * 2) {
+      message = "Pengeluaran Sangat Jauh dari Batas";
+      messageColor = Colors.orange;
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text(
+            "Saran yang bisa Anda lakukan:",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text("1. Memantau pengeluaran secara ketat"),
+          Text("2. Mencegah sifat konsumtif"),
+          Text("3. Cari alternatif yang lebih murah"),
+        ],
+      );
+    } else {
+      message = "Pengeluaran Anda Ekstrim";
+      messageColor = Colors.red;
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            "Saran yang bisa Anda lakukan:",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text("1. Menyimpan dana darurat"),
+          const Text("2. Mencari bantuan dari ahli keuangan"),
+          const Text("3. Membuat anggaran yang lebih ketat"),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {},
+            child: const Text(
+              "Klik di sini untuk belajar lebih lanjut tentang manajemen keuangan",
+              style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+            ),
+          ),
+        ],
+      );
+    }
+
+    _showDialog(message, content, messageColor);
+  }
+
+  void _showDialog(String title, dynamic content, Color titleColor) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: titleColor,
+          ),
+        ),
+        content: content is Widget ? content : Text(content, textAlign: TextAlign.center),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9575),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Tutup",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -55,130 +178,134 @@ class _PersonalizationPageState extends State<PersonalizationPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(
-          "Personalisasi Keuangan",
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Personalization",
           style: TextStyle(
-            fontFamily: 'Poppins', 
-            fontSize: 28, 
-            fontWeight: FontWeight.bold, 
-            color: Colors.purpleAccent,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: IconButton(
-              icon: const Icon(Icons.person, color: Colors.purpleAccent),
-              onPressed: () {
-                Navigator.pushNamed(context, '/personalization');
-              },
-            ),
-          ),
-        ],
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _incomeController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Pemasukan Bulanan",
-                prefixIcon: Icon(Icons.attach_money, color: Colors.purpleAccent),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDisplayField(
+                "Pemasukan Bulanan",
+                _income,
+                Icons.attach_money,
               ),
-            ),
-            SizedBox(height: 15),
-
-            TextField(
-              controller: _expenseController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Pengeluaran Bulanan",
-                prefixIcon: Icon(Icons.money_off, color: Colors.purpleAccent),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
+              const SizedBox(height: 16),
+              _buildDisplayField(
+                "Pengeluaran Bulanan",
+                _expense,
+                Icons.money_off,
               ),
-            ),
-            SizedBox(height: 15),
-
-            TextField(
-              controller: _limitController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Batas Pengeluaran",
-                prefixIcon: Icon(Icons.warning, color: Colors.orangeAccent),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                "Batas Pengeluaran",
+                "Masukkan Batas Pengeluaran",
+                _limitController,
+                Icons.warning,
               ),
-            ),
-            SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: _analyzeFinance,
-              child: Text(
-                "Analisis Keuangan",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-            ),
-            SizedBox(height: 30),
-
-            if (_predictedIncome != null)
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.purple[50],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  "Prediksi Pemasukan Bulan Depan: Rp${_predictedIncome!.toStringAsFixed(2)}",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurpleAccent,
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _analyzeFinances,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF9575),
+                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    "Analisis Keuangan",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
-            SizedBox(height: 15),
-
-            if (_suggestion != null)
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _suggestion!.contains("melebihi") ? Colors.red[50] : Colors.green[50],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _suggestion!,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: _suggestion!.contains("melebihi") ? Colors.red : Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDisplayField(String label, double value, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFE8E1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.black),
+              const SizedBox(width: 8),
+              Text(
+                value.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputField(String label, String hint, TextEditingController controller, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: const Color(0xFFFFE8E1),
+            prefixIcon: Icon(icon, color: Colors.black),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

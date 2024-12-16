@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:moneyt/personalization_page.dart';
 import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -101,7 +102,11 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.account_balance_wallet, color: Colors.black),
-                            onPressed: () {},
+                            onPressed: () {Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => PersonalizationPage()),
+                              );
+                            },
                           ),
                           IconButton(
                             icon: const Icon(Icons.person, color: Colors.black),
