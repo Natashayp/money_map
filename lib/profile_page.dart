@@ -72,7 +72,6 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 16),
-            // Profile Picture Section
             Stack(
               alignment: Alignment.bottomRight,
               children: [
@@ -237,7 +236,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _deleteAccount() async {
     await FirebaseFirestore.instance.collection('profil').doc('user_profile').delete();
+    await _deleteCollection('db-money-mab');
     _showDeleteDialog(context);
+  }
+
+  Future<void> _deleteCollection(String collectionPath) async {
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+    QuerySnapshot collectionSnapshot = await FirebaseFirestore.instance.collection(collectionPath).get();
+    for (QueryDocumentSnapshot doc in collectionSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 
   void _showSaveDialog(BuildContext context) {
@@ -288,9 +297,9 @@ class _ProfilePageState extends State<ProfilePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.delete_forever,
+              Icons.check_circle,
               size: 64,
-              color: Colors.red,
+              color: Colors.green,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -304,7 +313,7 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/signup');
+                Navigator.pushNamed(context, '/signup'); 
               },
               child: const Text("OK"),
             ),
